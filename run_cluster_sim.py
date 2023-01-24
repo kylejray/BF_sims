@@ -1,4 +1,7 @@
-# add test_things.py module to path
+# This is meant to be run, for example, with the command mpirun -n 4 -python run_cluster_sim.py
+# the code above will make 4 different processes
+
+
 import sys
 import numpy as np
 from SimRunner import BitFlipRunner,FredkinRunner
@@ -7,6 +10,7 @@ import math
 # always include these lines of MPI code!
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
+
 size = comm.Get_size()  # number of MPI procs
 rank = comm.Get_rank()  # i.d. for local proc
 
@@ -15,7 +19,7 @@ rank = comm.Get_rank()  # i.d. for local proc
 
 initial_params = {'N':50_000,'dt':1/5_000,'target_work':None, 'k':1, 'depth':8, 'location':2}
 
-
+#this will be sued to geenrate names for the different sim outputs dynamically
 def save_func(self):
    lmda = int(1000*self.params['lambda'])
    N = int(self.params['N'])
@@ -26,8 +30,9 @@ simrun = BitFlipRunner()
 simrun.save_name = save_func
 simrun.change_params(initial_params)
 
-#run_name = 'heatmap_sym_detail_2X20L_5X8g_p16p31_N40/'
-#save_dir = '/home/kylejray/FQ_sims/results/{}/'.format(run_name)
+# This code is to make a save name manually if you dont want to use simrun.save_name
+#run_name = 'bf_N{initial_params['N']/'
+#save_dir = f'/home/kylejray/FQ_sims/results/{run_name}/'
 
 
 
@@ -57,6 +62,7 @@ for combos in c_lists:
    params = combos[rank]
 '''
 
+# generating a list of parameter dictionaries for the different combos we want to try
 p_list=[]
 p_keys = ['k', 'lambda']
 lmdas = np.linspace(0, .2, 8)
@@ -65,14 +71,17 @@ for k in ks:
    for l in lmdas:
       p_list.append({key:val for key,val in zip(p_keys,[k,l])})
 
+#separates the different parameter combinations into different lists, depending on how many processes you allow
 p_lists = [ p_list[i*size:(i+1)*size] for i in range(math.ceil(len(p_list)/size))]
 
+
 for params in p_lists:
+   # perform local computation within each rank
    simrun.change_params(params[rank])
 
-   # save parameters to output file by printing
-   sys.stdout.write('my rank:{} of {}, params={} '.format(rank+1, size, params))
-   # perform local computation using local param
-   simrun.run_sim()
+   # save parameters to output file by printing, this might not work unless using SLURM on Demon
+   sys.stdout.write('my rank:{} of {}, params={} '.format(rank+1, size, params[rank]))
+   
+   simrun.run_sim(verbose=True)
    # save your results
    simrun.save_sim()
