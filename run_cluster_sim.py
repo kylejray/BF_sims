@@ -83,5 +83,6 @@ for params in p_lists:
    sys.stdout.write('my rank:{} of {}, params={} '.format(rank+1, size, params[rank]))
    
    simrun.run_sim(verbose=True)
+   
    # save your results
    simrun.save_sim()

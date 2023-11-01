@@ -45,17 +45,20 @@ class BitFlipRunner(SimManager):
         key_list = ['depth', 'location', 'k']
         d, l, k = [self.params[k] for k in key_list]
         
-
-        self.potential.default_params = [d/l**4, -4*d/l**2]
-        self.eq_protocol = self.potential.trivial_protocol().copy()
+        self.eq_potential = self.potential.copy()
+        self.eq_potential.default_params = [d/l**4, -4*d/l**2]
+        self.eq_protocol = self.eq_potential.trivial_protocol().copy()
+        self.eq_potential.offset = d
+        self.eq_system = System(self.eq_protocol, self.eq_potential)
+        self.eq_system.has_velocity= self.has_velocity
 
         self.potential.default_params[-1] = self.potential.default_params = [0, k]
+        self.potential.offset = - .5*k*l**2
         self.protocol =  self.potential.trivial_protocol().copy()
-
         self.system = System(self.protocol, self.potential)
+        
         self.system.has_velocity = self.has_velocity
-        self.eq_system = System(self.eq_protocol, self.potential)
-        self.eq_system.has_velocity= self.has_velocity
+        
         self.system.protocol.normalize()
         self.system.protocol.time_stretch(np.pi/np.sqrt(k))
         self.set_sim_attributes()
